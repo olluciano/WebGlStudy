@@ -128,7 +128,7 @@ window.onload = function () {
     })()
     function createGui(){
       gui = new dat.GUI();
-      gui.add(parameters,'height').min(0).max(1).step(0.0001).name("max values");
+      gui.add(parameters,'height').min(0.00002).max(0.01).step(0.00001).name("max values");
       gui.add(parameters,'lightPower').min(0).max(2).step(0.001).name("lightPower").onChange(function(value){light.intensity = parameters.lightPower;}).listen();
       gui.add(parameters,'lightDistance').min(0).max(10).step(0.001).name("lightDistance").onChange(function(value){light.distance = parameters.lightDistance;}).listen();
       gui.add(parameters,'lightR').min(0).max(1).step(.0001).name("lightR").onChange(function(value){light.color.r = parameters.lightR;}).listen();
