@@ -1,0 +1,300 @@
+<style>
+	html, body{
+	width: 100%;
+	height: 100%;
+	padding: 0;
+	margin: 0;
+
+	font-size: 0;
+	  
+	  
+	  
+	 
+
+	background: -moz-linear-gradient(left, rgb(158,158,158) 0%, rgb(0,0,0) 18%,  rgb(0,0,0) 85%, rgb(158,158,158) 100%); /* FF3.6-15 */
+	background: -webkit-linear-gradient(left,  rgb(158,158,158) 0%, rgb(0,0,0) 18%,  rgb(0,0,0) 85%, rgb(158,158,158) 100%); /* Chrome10-25,Safari5.1-6 */
+	background: linear-gradient(to right,  rgb(158,158,158) 0%, rgb(0,0,0) 18%,  rgb(0,0,0) 85%, rgb(158,158,158) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#9e9e9e', endColorstr='#9e9e9e',GradientType=1 ); /* IE6-9 */
+	}
+
+
+
+	h1{
+	width: 100%;
+	font-family: sans-serif;
+	position:absolute;
+	text-align:center;
+	color:white;
+	font-size: 18px;
+	top: 40%;
+	opacity: 1;
+	transition: opacity 1s ease-in-out;
+	-moz-transition: opacity 1s ease-in-out;
+	-webkit-transition: opacity 1s ease-in-out;
+	}
+
+	h1 a{
+	  color: #48b1f4;
+	  text-decoration:none;
+	}
+
+	.centered {
+	  position: fixed;
+	  top: 50%;
+	  left: 50%;
+	}
+</style>
+	<script src="https://threejs.org/build/three.min.js"></script>
+	<script src="https://threejs.org/examples/js/libs/dat.gui.min.js"></script>
+
+
+	<script src="https://threejs.org/examples/js/controls/TrackballControls.js"></script>
+	<script src="https://threejs.org/examples/js/libs/dat.gui.min.js"></script>
+	<script src="https://threejs.org/examples/js/libs/stats.min.js"></script>
+	<script src="https://threejs.org/examples/js/GPUParticleSystem.js"></script>
+
+<h1>Iaa</h1>
+
+
+
+
+<script>
+var h = document.getElementsByTagName('h1')[0];
+var report = 0;
+var init, camera, scene, renderer, raycaster, objects,controls;
+var range = 512, segments=8;
+var mouse = new THREE.Vector2(), INTERSECTED;
+var radius = 100, theta = 0;
+var cursorFocus;
+
+var  tick = 0,clock = new THREE.Clock();
+
+
+var soundAllowed,soundNotAllowed;
+
+var gui,parameters = { 
+        scale:2,
+        lightDistance:2.6,
+        lightPower:1,
+        lightR: 1,
+        lightG: 1,
+        lightB: 1,
+        gridRotationX: -3.14/4,
+        gridRotationZ:0,
+        spectrumFraction:1,
+		height : 0.002,
+        micListen: function(){  navigator.mediaDevices.getUserMedia({audio:true}).then(soundAllowed).catch(soundNotAllowed)}
+      };
+var fraction = 1;
+
+
+
+			var options = {
+				position: new THREE.Vector3(),
+				positionRandomness: .3,
+				velocity: new THREE.Vector3(),
+				velocityRandomness: .5,
+				color: 0xaa88ff,
+				colorRandomness: .2,
+				turbulence: 0,
+				lifetime: 6,
+				size: 5,
+				sizeRandomness: 1
+			};
+
+			var spawnerOptions = {
+				spawnRate: 10,
+				horizontalSpeed: 0,
+				verticalSpeed: 1.33,
+				timeScale: 1
+			};
+		var updateFrequencies;
+
+window.onload = function () {
+    "use strict";
+   
+   (init = function () {
+      camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.01, 10 );
+      camera.position.z = 1;
+
+      scene = new THREE.Scene();
+     
+			 
+
+		
+    
+     objects = new THREE.Object3D();
+     for(var i = 0; i< segments; i++){
+		objects.add(
+			new THREE.GPUParticleSystem( {maxParticles: 16} )
+			
+		);
+		objects.children[i].position.x = (parameters.scale / segments)*i;
+	 }
+    //  objects.forEach(function(item,index){scene.add(item);});
+  
+   
+     
+      addEvent(window, 'resize', onWindowResize);
+      addEvent(document, 'mousemove', onDocumentMouseMove);
+      addEvent(document, 'mouseout', onMouseOut);
+     
+      renderer = new THREE.WebGLRenderer( { antialias: true, alpha: true  } );
+	  
+      renderer.setSize( window.innerWidth, window.innerHeight );
+     
+      document.body.appendChild( renderer.domElement );
+     
+     
+		gui = new dat.GUI();
+		gui.add(parameters,'height').min(0.00002).max(0.01).step(0.00001).name("max values");
+		gui.add(parameters,'lightPower').min(0).max(2).step(0.001).name("lightPower").onChange(function(value){light.intensity = parameters.lightPower;}).listen();
+		gui.add(parameters,'lightDistance').min(0).max(10).step(0.001).name("lightDistance").onChange(function(value){light.distance = parameters.lightDistance;}).listen();
+		gui.add(parameters,'lightR').min(0).max(1).step(.0001).name("lightR").onChange(function(value){light.color.r = parameters.lightR;}).listen();
+		gui.add(parameters,'lightG').min(0).max(1).step(.0001).name("lightG").onChange(function(value){light.color.g = parameters.lightG;}).listen();
+		gui.add(parameters,'lightB').min(0).max(1).step(.0001).name("lightB").onChange(function(value){light.color.b = parameters.lightB;}).listen();
+		gui.add(parameters,'gridRotationX').min(-3.14).max(3.14).step(.00001).name("gridRotationX").onChange(function(value){mesh.rotation.x = parameters.gridRotationX;}).listen();
+		gui.add(parameters,'gridRotationZ').min(-3.14).max(3.14).step(.00001).name("gridRotationZ").onChange(function(value){mesh.rotation.z = parameters.gridRotationZ;}).listen();
+		gui.add(parameters,'spectrumFraction').min(1).max(8).step(1).name("spectrumFraction").onChange(function(value){fraction = 1; for(var i =1;i< value;i++){fraction *=2;}}).listen();
+		gui.add(parameters,'micListen');
+	 
+	 			gui.add( options, "velocityRandomness", 0, 3 );
+			gui.add( options, "positionRandomness", 0, 3 );
+			gui.add( options, "size", 1, 20 );
+			gui.add( options, "sizeRandomness", 0, 25 );
+			gui.add( options, "colorRandomness", 0, 1 );
+			gui.add( options, "lifetime", .1, 100 );
+			gui.add( options, "turbulence", 0, 1 );
+
+			gui.add( spawnerOptions, "spawnRate", 10, 30000 );
+			gui.add( spawnerOptions, "timeScale", -1, 1 );
+	 
+	 
+	 
+	 		controls = new THREE.TrackballControls( camera, renderer.domElement );
+		controls.rotateSpeed = 5.0;
+		controls.zoomSpeed = 2.2;
+		controls.panSpeed = 1;
+		controls.dynamicDampingFactor = 0.3;
+		
+		
+		updateFrequencies = function(){console.log('mic not allowed yet')};
+		animate();
+	})()
+	
+	
+
+    function onMouseOut(e){
+      e = e ? e : window.event;
+      var from = e.relatedTarget || e.toElement;
+      if (!from || from.nodeName == 'HTML') {
+        cursorFocus = false;
+        console.log(cursorFocus);
+      }
+    }
+    function onDocumentMouseMove( event ) {
+        if(!cursorFocus) cursorFocus= true;
+				event.preventDefault();
+				mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+				mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+    }
+    function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+    }
+    function addEvent(obj, evt, fn) {
+      if (obj.addEventListener) {
+        obj.addEventListener(evt, fn, false);
+      }
+      else if (obj.attachEvent) {
+        obj.attachEvent('on' + evt, fn);
+      }
+    }
+	
+    function soundAllowed(stream) { 
+        
+        window.persistAudioStream = stream;
+        h.innerHTML = "Thanks";
+        h.setAttribute('style', 'opacity: 0;');
+        var audioContent = new AudioContext();
+        var audioStream = audioContent.createMediaStreamSource( stream );
+        var analyser = audioContent.createAnalyser();
+        audioStream.connect(analyser);
+        analyser.fftSize = range*2;
+        var frequencyArray = new Uint8Array(analyser.frequencyBinCount);  
+		
+		
+		updateFrequencies = function(){
+			analyser.getByteFrequencyData(frequencyArray);
+			//var max = Math.pow(segments+1, 2);
+
+
+			var adjustedLength;
+			var i = 0;
+			var j = 0;
+			while(i < (range/fraction)){
+
+				adjustedLength = Math.floor(frequencyArray[i]);
+			
+				objects.children[j].position.y = adjustedLength *parameters.height;
+				
+				j+= 1;
+				i+=(range/fraction)/(segments);
+			}     
+
+		};
+        
+    }
+
+    
+    function soundNotAllowed(error) {
+        h.innerHTML = "You must allow your microphone.";
+        console.log(error);
+    }
+ 
+	function animate(){
+		
+		requestAnimationFrame(animate);
+		
+		updateFrequencies();
+
+
+
+		var delta = clock.getDelta() * spawnerOptions.timeScale;
+
+		tick += delta;
+
+		if ( tick < 0 ) tick = 0;
+
+		if ( delta > 0 ) {
+			objects.children.forEach(function(item,index){
+			
+				for ( var x = 0; x < spawnerOptions.spawnRate /* * delta*/; x++ ) {
+
+
+					item.spawnParticle( options );
+
+				}
+			});
+			
+
+		}
+
+		particleSystem.update( tick );
+
+
+
+
+
+		renderer.render( scene, camera );
+		  
+	}
+ 
+ 
+ 
+ 
+ navigator.mediaDevices.getUserMedia({audio:true}).then(soundAllowed).catch(soundNotAllowed);
+};
+
+</script>
