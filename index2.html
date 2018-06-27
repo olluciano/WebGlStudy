@@ -139,8 +139,8 @@ window.onload = function () {
       addEvent(document, 'mousemove', onDocumentMouseMove);
       addEvent(document, 'mouseout', onMouseOut);
      
-      renderer = new THREE.WebGLRenderer( { antialias: true, alpha: true  } );
-	  
+     			renderer = new THREE.WebGLRenderer();
+			renderer.setPixelRatio( window.devicePixelRatio );
       renderer.setSize( window.innerWidth, window.innerHeight );
      
       document.body.appendChild( renderer.domElement );
