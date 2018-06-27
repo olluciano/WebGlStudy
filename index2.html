@@ -231,17 +231,14 @@ window.onload = function () {
 
 
 			var adjustedLength;
-			var i = 0;
-			var j = 0;
-			while(i < (range/fraction)){
-
-				adjustedLength = Math.floor(frequencyArray[i]);
+	
+			objects.children.forEach(function(item,index){
 			
-				objects.children[j].position.y = adjustedLength *parameters.height;
-				
-				j+= 1;
-				i+=(range/fraction)/(segments);
-			}     
+				adjustedLength = Math.floor(frequencyArray[((range/fraction)/segments)*index]);
+			
+				item.position.y = adjustedLength *parameters.height;
+			});
+			
 
 		};
         
