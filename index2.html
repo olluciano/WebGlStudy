@@ -71,7 +71,7 @@ var  tick = 0,clock = new THREE.Clock();
 
 
 var soundAllowed,soundNotAllowed;
-
+var frequencyArray ;
 var gui,parameters = { 
         scale:2,
         lightDistance:2.6,
@@ -228,7 +228,7 @@ window.onload = function () {
         var analyser = audioContent.createAnalyser();
         audioStream.connect(analyser);
         analyser.fftSize = range*2;
-        var frequencyArray = new Uint8Array(analyser.frequencyBinCount);  
+        frequencyArray = new Uint8Array(analyser.frequencyBinCount);  
 		
 		
 		updateFrequencies = function(){
