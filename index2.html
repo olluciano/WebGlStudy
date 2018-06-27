@@ -1,195 +1,207 @@
 <style>
-  html, body{
-    width: 100%;
-    height: 100%;
-    padding: 0;
-    margin: 0;
-    font-size: 0;
-    background: -moz-linear-gradient(left, rgb(158,158,158) 0%, rgb(30,30,30) 18%,  rgb(30,30,30) 85%, rgb(158,158,158) 100%); /* FF3.6-15 */
-    background: -webkit-linear-gradient(left,  rgb(158,158,158) 0%, rgb(30,30,30) 18%,  rgb(30,30,30) 85%, rgb(158,158,158) 100%); /* Chrome10-25,Safari5.1-6 */
-    background: linear-gradient(to right,  rgb(158,158,158) 0%, rgb(30,30,30) 18%,  rgb(30,30,30) 85%, rgb(158,158,158) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
-    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#9e9e9e', endColorstr='#9e9e9e',GradientType=1 ); /* IE6-9 */
-  }
+	html, body{
+	width: 100%;
+	height: 100%;
+	padding: 0;
+	margin: 0;
 
-  .centered {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-  }
+	font-size: 0;
+	  
+	  
+	  
+	 
+
+	background: -moz-linear-gradient(left, rgb(158,158,158) 0%, rgb(0,0,0) 18%,  rgb(0,0,0) 85%, rgb(158,158,158) 100%); /* FF3.6-15 */
+	background: -webkit-linear-gradient(left,  rgb(158,158,158) 0%, rgb(0,0,0) 18%,  rgb(0,0,0) 85%, rgb(158,158,158) 100%); /* Chrome10-25,Safari5.1-6 */
+	background: linear-gradient(to right,  rgb(158,158,158) 0%, rgb(0,0,0) 18%,  rgb(0,0,0) 85%, rgb(158,158,158) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#9e9e9e', endColorstr='#9e9e9e',GradientType=1 ); /* IE6-9 */
+	}
+
+
+
+	h1{
+	width: 100%;
+	font-family: sans-serif;
+	position:absolute;
+	text-align:center;
+	color:white;
+	font-size: 18px;
+	top: 40%;
+	opacity: 1;
+	transition: opacity 1s ease-in-out;
+	-moz-transition: opacity 1s ease-in-out;
+	-webkit-transition: opacity 1s ease-in-out;
+	}
+
+	h1 a{
+	  color: #48b1f4;
+	  text-decoration:none;
+	}
+
+	.centered {
+	  position: fixed;
+	  top: 50%;
+	  left: 50%;
+	}
 </style>
-<script src="https://threejs.org/build/three.min.js"></script>
-<script src="https://threejs.org/examples/js/libs/dat.gui.min.js"></script>
-<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+	<script src="https://threejs.org/build/three.min.js"></script>
+	<script src="https://threejs.org/examples/js/libs/dat.gui.min.js"></script>
 
-<script src="https://threejs.org/examples/js/postprocessing/EffectComposer.js"></script>
-<script src="https://threejs.org/examples/js/postprocessing/RenderPass.js"></script>
-<script src="https://threejs.org/examples/js/postprocessing/ShaderPass.js"></script>
-<script src="https://threejs.org/examples/js/postprocessing/MaskPass.js"></script> 
-<script src="https://threejs.org/examples/js/shaders/CopyShader.js"></script>
 
-<script src="https://threejs.org/examples/js/shaders/RGBShiftShader.js"></script>
+	<script src="https://threejs.org/examples/js/controls/TrackballControls.js"></script>
+	<script src="https://threejs.org/examples/js/libs/dat.gui.min.js"></script>
+	<script src="https://threejs.org/examples/js/libs/stats.min.js"></script>
+	<script src="https://threejs.org/examples/js/GPUParticleSystem.js"></script>
+
+<h1>Iaa</h1>
+
+
+
 
 <script>
+var h = document.getElementsByTagName('h1')[0];
+var report = 0;
+var init, camera, scene, renderer, raycaster, objects,controls;
+var range = 512, segments=8;
+var mouse = new THREE.Vector2(), INTERSECTED;
+var radius = 100, theta = 0;
+var cursorFocus;
 
-  var report = 0;
-  var init, camera, controls, scene, renderer, raycaster, objects = [];
-  var soundAllowed,soundNotAllowed;
-
-  var amountSpeed = 8, angleSpeed = 32;
-  var renderPass,rgbPass,copyPass,composer;
-
-  var range = 512;
+var  tick = 0,clock = new THREE.Clock();
 
 
-  var spotLight;
-  var gui,par = { 
-    scale:.2,
+var soundAllowed,soundNotAllowed;
 
-    height : 2,
-    show: true,
-    amount: 0.01,
-    angle: 0.0,
-    maxShift:.002,
-    shiftRate:0.00001,
-    res:256
-    //micListen: function(){  navigator.mediaDevices.getUserMedia({audio:true}).then(soundAllowed).catch(soundNotAllowed)}
-  };
-  var originalCircle;
+var gui,parameters = { 
+        scale:2,
+        lightDistance:2.6,
+        lightPower:1,
+        lightR: 1,
+        lightG: 1,
+        lightB: 1,
+        gridRotationX: -3.14/4,
+        gridRotationZ:0,
+        spectrumFraction:1,
+		height : 0.002,
+        micListen: function(){  navigator.mediaDevices.getUserMedia({audio:true}).then(soundAllowed).catch(soundNotAllowed)}
+      };
+var fraction = 1;
 
-  window.onload = function () {
+
+
+			var options = {
+				position: new THREE.Vector3(),
+				positionRandomness: .3,
+				velocity: new THREE.Vector3(),
+				velocityRandomness: .5,
+				color: 0xaa88ff,
+				colorRandomness: .2,
+				turbulence: 0,
+				lifetime: 6,
+				size: 5,
+				sizeRandomness: 1
+			};
+
+			var spawnerOptions = {
+				spawnRate: 10,
+				horizontalSpeed: 0,
+				verticalSpeed: 1.33,
+				timeScale: 1
+			};
+		var updateFrequencies;
+
+window.onload = function () {
     "use strict";
-    (init = function () {
-      scene = new THREE.Scene();
-      renderer = new THREE.WebGLRenderer( { antialias: true, alpha: true  } );
-      renderer.setSize( window.innerWidth, window.innerHeight );
-      renderer.gammaInput = true;
-      renderer.gammaOutput = true;
-
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      document.body.appendChild( renderer.domElement );
-
+   
+   (init = function () {
       camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.01, 10 );
       camera.position.z = 1;
-      controls = new THREE.OrbitControls( camera ,renderer.domElement);
 
-      spotLight = new THREE.SpotLight( 0xffffff );
-      spotLight.position.set( 0, 2, 0 );
-      spotLight.lookAt(scene);
-      spotLight.angle = 1.6;
-      spotLight.penumbra = 0.05;
-      spotLight.decay = 3;
-      spotLight.distance = 6;
+      scene = new THREE.Scene();
+     
+			 
 
-      spotLight.castShadow = true;
-      spotLight.shadow.mapSize.width = 1024;
-      spotLight.shadow.mapSize.height = 1024;
-      spotLight.shadow.camera.near = .1;
-      spotLight.shadow.camera.far = 10;
-      scene.add( spotLight );
-
-
-
-
-      var mat = new THREE.MeshNormalMaterial();
-      //var circleMat = new THREE.MeshBasicMaterial({wireframe:true});
-      var shadowMat = new THREE.ShadowMaterial({opacity : 0.5});
-      //  var mat2 =  new THREE.MeshPhongMaterial( { color: 0x808080} );
-
-      objects[0] = new THREE.Mesh(new THREE.IcosahedronGeometry(par.scale,0),mat); 
-      objects[0].castShadow = true;
-
-      objects[1] = new THREE.Mesh(new THREE.PlaneGeometry(100,100),shadowMat); 
-      objects[1].rotation.x = - Math.PI * 0.5;
-      objects[1].position.y = -0.42;
-      objects[1].receiveShadow = true;
-
-
-
-
-
-      var circleGeo = new THREE.Geometry(),
-          circleMat = new THREE.LineBasicMaterial({ color: 0xFFFFFF });
-
-      for (var i = 0; i <= par.res; i++) {
-        var theta = (i / par.res) * Math.PI * 2;
-        circleGeo.vertices.push(
-          new THREE.Vector3(
-            Math.cos(theta) *( par.scale*2),
-            Math.sin(theta) * (par.scale*2),
-            0));            
-      }
-
-      originalCircle = new THREE.Geometry();
-
-
-      for (var i = 0; i <= par.res; i++) {
-        var theta = (i / par.res) * Math.PI * 2;
-        originalCircle.vertices.push(
-          new THREE.Vector3(
-            Math.cos(theta) *( par.scale*2),
-            Math.sin(theta) * (par.scale*2),
-            0));            
-      }
-
-      objects[2] = new THREE.LineLoop( circleGeo, circleMat ); 
-
-      objects.forEach(function(item,index){scene.add(item)});
-
+		
+    
+     objects = new THREE.Object3D();
+     for(var i = 0; i< segments; i++){
+		objects.add(
+			new THREE.GPUParticleSystem( {maxParticles: 16} )
+			
+		);
+		objects.children[i].position.x = (parameters.scale / segments)*i;
+	 }
+    //  objects.forEach(function(item,index){scene.add(item);});
+  
+   
+     
       addEvent(window, 'resize', onWindowResize);
-      //addEvent(document, 'mousemove', onDocumentMouseMove);
-      //addEvent(document, 'mouseout', onMouseOut);
-
-
-
-      //POST PROCESSING
-      //Create Shader Passes
-      renderPass = new THREE.RenderPass( scene, camera );
-      rgbPass = new THREE.ShaderPass( THREE.RGBShiftShader );
-      copyPass = new THREE.ShaderPass( THREE.CopyShader );
-
-      onToggleShaders();
-      onParamsChange();
-
-      gui = new dat.GUI();gui.closed = true;  
-      gui.add(par, 'amount').min(-.01).max(.01).step(.00001).name("RGB shift amount").onChange(onParamsChange).listen();
-      gui.add(par, 'angle').min(-3.140).max(3.14).step(.00001).name("RGB shift angle").onChange(onParamsChange).listen();
-      gui.add(par, 'maxShift').min(0).max(3.14).step(.00001);
-      gui.add(par, 'height').min(0).max(80).step(.00001);
-      gui.add(spotLight, 'decay').min(-1).max(10).step(.00001);
-      gui.add(spotLight, 'distance').min(-1).max(10).step(.00001);
-      gui.add(spotLight, 'angle').min(0).max(3.14).step(.00001);
-      gui.add(spotLight, 'intensity').min(0).max(30.14).step(.00001);
-
-      //   gui.addColor(mat2, 'color');
-      gui.add(objects[1].position, 'y').min(-1).max(10).step(.00001);
-
-
-    })()
-
-    function onToggleShaders(){
-      //Add Shader Passes to Composer
-      //order is important 
-      composer = new THREE.EffectComposer( renderer);
-      composer.addPass( renderPass );
-
-      if (par.show){
-        composer.addPass( rgbPass );
-      }
-      composer.addPass( copyPass );
-      copyPass.renderToScreen = true;
-    }
-
-    function onParamsChange(){	
-      rgbPass.uniforms["angle"].value = par.angle*Math.PI;
-      rgbPass.uniforms["amount"].value = par.amount;
-    }
-
-
-    function onWindowResize() {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
+      addEvent(document, 'mousemove', onDocumentMouseMove);
+      addEvent(document, 'mouseout', onMouseOut);
+     
+      renderer = new THREE.WebGLRenderer( { antialias: true, alpha: true  } );
+	  
       renderer.setSize( window.innerWidth, window.innerHeight );
+     
+      document.body.appendChild( renderer.domElement );
+     
+     
+		gui = new dat.GUI();
+		gui.add(parameters,'height').min(0.00002).max(0.01).step(0.00001).name("max values");
+		gui.add(parameters,'lightPower').min(0).max(2).step(0.001).name("lightPower").onChange(function(value){light.intensity = parameters.lightPower;}).listen();
+		gui.add(parameters,'lightDistance').min(0).max(10).step(0.001).name("lightDistance").onChange(function(value){light.distance = parameters.lightDistance;}).listen();
+		gui.add(parameters,'lightR').min(0).max(1).step(.0001).name("lightR").onChange(function(value){light.color.r = parameters.lightR;}).listen();
+		gui.add(parameters,'lightG').min(0).max(1).step(.0001).name("lightG").onChange(function(value){light.color.g = parameters.lightG;}).listen();
+		gui.add(parameters,'lightB').min(0).max(1).step(.0001).name("lightB").onChange(function(value){light.color.b = parameters.lightB;}).listen();
+		gui.add(parameters,'gridRotationX').min(-3.14).max(3.14).step(.00001).name("gridRotationX").onChange(function(value){mesh.rotation.x = parameters.gridRotationX;}).listen();
+		gui.add(parameters,'gridRotationZ').min(-3.14).max(3.14).step(.00001).name("gridRotationZ").onChange(function(value){mesh.rotation.z = parameters.gridRotationZ;}).listen();
+		gui.add(parameters,'spectrumFraction').min(1).max(8).step(1).name("spectrumFraction").onChange(function(value){fraction = 1; for(var i =1;i< value;i++){fraction *=2;}}).listen();
+		gui.add(parameters,'micListen');
+	 
+	 			gui.add( options, "velocityRandomness", 0, 3 );
+			gui.add( options, "positionRandomness", 0, 3 );
+			gui.add( options, "size", 1, 20 );
+			gui.add( options, "sizeRandomness", 0, 25 );
+			gui.add( options, "colorRandomness", 0, 1 );
+			gui.add( options, "lifetime", .1, 100 );
+			gui.add( options, "turbulence", 0, 1 );
+
+			gui.add( spawnerOptions, "spawnRate", 10, 30000 );
+			gui.add( spawnerOptions, "timeScale", -1, 1 );
+	 
+	 
+	 
+	 		controls = new THREE.TrackballControls( camera, renderer.domElement );
+		controls.rotateSpeed = 5.0;
+		controls.zoomSpeed = 2.2;
+		controls.panSpeed = 1;
+		controls.dynamicDampingFactor = 0.3;
+		
+		
+		updateFrequencies = function(){console.log('mic not allowed yet')};
+		animate();
+	})()
+	
+	
+
+    function onMouseOut(e){
+      e = e ? e : window.event;
+      var from = e.relatedTarget || e.toElement;
+      if (!from || from.nodeName == 'HTML') {
+        cursorFocus = false;
+        console.log(cursorFocus);
+      }
+    }
+    function onDocumentMouseMove( event ) {
+        if(!cursorFocus) cursorFocus= true;
+				event.preventDefault();
+				mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+				mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+    }
+    function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
     }
     function addEvent(obj, evt, fn) {
       if (obj.addEventListener) {
@@ -199,99 +211,90 @@
         obj.attachEvent('on' + evt, fn);
       }
     }
-    soundAllowed = function (stream) { 
-      window.persistAudioStream = stream;
-      var audioContent = new AudioContext();
-      var audioStream = audioContent.createMediaStreamSource( stream );
-      var analyser = audioContent.createAnalyser();
-      audioStream.connect(analyser);
-      analyser.fftSize = range*2;
-      var frequencyArray = new Uint8Array(analyser.frequencyBinCount);     
-      var t =true;
-      var scal = range/(par.res/0.5);
-      var max = range/(range/ par.res); 
-      (function animationLoop(){
-        requestAnimationFrame(animationLoop);
-        analyser.getByteFrequencyData(frequencyArray);
-        var skip = 0;
-        var freq = 0;
+	
+    function soundAllowed(stream) { 
         
-        var zeroVector = new THREE.Vector3( );
-        var distance = originalCircle.vertices[0].distanceTo(zeroVector);
-        function N(num, places){ 
-          return +(Math.round(num + "e+" + places)  + "e-" + places);
-        }
-        function getSum(total, num) {
-          return total + num;
-        }
-        objects[2].geometry.vertices.forEach(function(item,index){
-
-          if(index == skip){
-            if(frequencyArray[freq]>0) {
-              item.x = originalCircle.vertices[index].x;
-              item.y = originalCircle.vertices[index].y;
-              item.z = originalCircle.vertices[index].z;
-              var nume = frequencyArray.slice(freq,freq+scal).reduce(getSum);
-             
-              item.setLength(distance+((distance / max   )* nume));
-            }else{
-
-              if(N(item.distanceTo( zeroVector),2)> distance){ 
-
-                item.multiplyScalar(0.95+((item.distanceTo( zeroVector)-distance)/64));
-
-              }else{
-
-                item.x = originalCircle.vertices[index].x;
-                item.y = originalCircle.vertices[index].y;
-                item.z = originalCircle.vertices[index].z;
-              }
-            }
-            freq += scal;
-            skip += 1;
-          }
-        });
-        objects[2].geometry.verticesNeedUpdate = true;
+        window.persistAudioStream = stream;
+        h.innerHTML = "Thanks";
+        h.setAttribute('style', 'opacity: 0;');
+        var audioContent = new AudioContext();
+        var audioStream = audioContent.createMediaStreamSource( stream );
+        var analyser = audioContent.createAnalyser();
+        audioStream.connect(analyser);
+        analyser.fftSize = range*2;
+        var frequencyArray = new Uint8Array(analyser.frequencyBinCount);  
+		
+		
+		updateFrequencies = function(){
+			analyser.getByteFrequencyData(frequencyArray);
+			//var max = Math.pow(segments+1, 2);
 
 
+			var adjustedLength;
+			var i = 0;
+			var j = 0;
+			while(i < (range/fraction)){
 
-        if(frequencyArray[80]>0){
-          rgbPass.uniforms["amount"].value += rgbPass.uniforms["amount"].value< par.maxShift ?  (frequencyArray[80]*par.shiftRate ):0;
+				adjustedLength = Math.floor(frequencyArray[i]);
+			
+				objects.children[j].position.y = adjustedLength *parameters.height;
+				
+				j+= 1;
+				i+=(range/fraction)/(segments);
+			}     
 
-        } else{
-
-          if(rgbPass.uniforms["amount"].value >0){
-            rgbPass.uniforms["amount"].value -= ( rgbPass.uniforms["amount"].value  ) / amountSpeed;
-          }
-        }
-        if(frequencyArray[80]>0){
-          rgbPass.uniforms["angle"].value += (frequencyArray[60]*0.001 );
-
-        } else{
-
-          if(rgbPass.uniforms["angle"].value > par.angle){
-            rgbPass.uniforms["angle"].value -= ( rgbPass.uniforms["angle"].value - par.angle ) / angleSpeed;
-          }
-        }
-
-        objects[0].scale.z = 1+   (frequencyArray[128]/ 500  );
-        objects[0].scale.x = 1+   (frequencyArray[50]/ 500  );
-        objects[0].scale.y = 1+   (frequencyArray[0]/ 500  );
-        objects[0].rotation.x += 0.01;
-        //  objects[0].rotation.y += 0.02;
-        objects[0].rotation.y += Math.sin(Date.now()/ 30000000 / (Math.PI/ 180))/100 ;
-        ///
-
-        composer.render(0.1);
-        // renderer.render( scene, camera );
-      })()
-
+		};
+        
     }
-    soundNotAllowed = function (error) {
-      console.log("You must allow your microphone.");
-      console.log(error);
+
+    
+    function soundNotAllowed(error) {
+        h.innerHTML = "You must allow your microphone.";
+        console.log(error);
     }
-    navigator.mediaDevices.getUserMedia({audio:true}).then(soundAllowed).catch(soundNotAllowed);
-  };
+ 
+	function animate(){
+		
+		requestAnimationFrame(animate);
+		
+		updateFrequencies();
+
+
+
+		var delta = clock.getDelta() * spawnerOptions.timeScale;
+
+		tick += delta;
+
+		if ( tick < 0 ) tick = 0;
+
+		if ( delta > 0 ) {
+			objects.children.forEach(function(item,index){
+			
+				for ( var x = 0; x < spawnerOptions.spawnRate /* * delta*/; x++ ) {
+
+
+					item.spawnParticle( options );
+
+				}
+			});
+			
+
+		}
+
+		particleSystem.update( tick );
+
+
+
+
+
+		renderer.render( scene, camera );
+		  
+	}
+ 
+ 
+ 
+ 
+ navigator.mediaDevices.getUserMedia({audio:true}).then(soundAllowed).catch(soundNotAllowed);
+};
 
 </script>
