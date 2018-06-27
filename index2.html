@@ -91,14 +91,14 @@ var fraction = 1;
 
 			var options = {
 				position: new THREE.Vector3(),
-				positionRandomness: .3,
+				positionRandomness: 0,
 				velocity: new THREE.Vector3(),
-				velocityRandomness: .5,
+				velocityRandomness: 0,
 				color: 0xaa88ff,
 				colorRandomness: .2,
 				turbulence: 0,
 				lifetime: 6,
-				size: 5,
+				size: 20,
 				sizeRandomness: 1
 			};
 
@@ -132,7 +132,7 @@ window.onload = function () {
 		objects.children[i].position.x = (parameters.scale / segments)*i;
 	 }
     //  objects.forEach(function(item,index){scene.add(item);});
-  
+	 scene.add(objects);
    
      
       addEvent(window, 'resize', onWindowResize);
@@ -148,19 +148,22 @@ window.onload = function () {
      
 		gui = new dat.GUI();
 		gui.add(parameters,'height').min(0.00002).max(0.01).step(0.00001).name("max values");
-		gui.add(parameters,'lightPower').min(0).max(2).step(0.001).name("lightPower").onChange(function(value){light.intensity = parameters.lightPower;}).listen();
-		gui.add(parameters,'lightDistance').min(0).max(10).step(0.001).name("lightDistance").onChange(function(value){light.distance = parameters.lightDistance;}).listen();
-		gui.add(parameters,'lightR').min(0).max(1).step(.0001).name("lightR").onChange(function(value){light.color.r = parameters.lightR;}).listen();
-		gui.add(parameters,'lightG').min(0).max(1).step(.0001).name("lightG").onChange(function(value){light.color.g = parameters.lightG;}).listen();
-		gui.add(parameters,'lightB').min(0).max(1).step(.0001).name("lightB").onChange(function(value){light.color.b = parameters.lightB;}).listen();
-		gui.add(parameters,'gridRotationX').min(-3.14).max(3.14).step(.00001).name("gridRotationX").onChange(function(value){mesh.rotation.x = parameters.gridRotationX;}).listen();
-		gui.add(parameters,'gridRotationZ').min(-3.14).max(3.14).step(.00001).name("gridRotationZ").onChange(function(value){mesh.rotation.z = parameters.gridRotationZ;}).listen();
+	
+		gui.add(objects.position,'x').min(-50).max(50).step(.00001);
+		gui.add(objects.position,'y').min(-50).max(50).step(.00001);
+		gui.add(objects.position,'z').min(-50).max(50).step(.00001);
+		gui.add(objects.rotation,'x').min(-3.14).max(3.14).step(.00001);
+		gui.add(objects.rotation,'y').min(-3.14).max(3.14).step(.00001);
+		gui.add(objects.rotation,'z').min(-3.14).max(3.14).step(.00001);
 		gui.add(parameters,'spectrumFraction').min(1).max(8).step(1).name("spectrumFraction").onChange(function(value){fraction = 1; for(var i =1;i< value;i++){fraction *=2;}}).listen();
 		gui.add(parameters,'micListen');
 	 
 	 			gui.add( options, "velocityRandomness", 0, 3 );
 			gui.add( options, "positionRandomness", 0, 3 );
 			gui.add( options, "size", 1, 20 );
+			gui.add( options.velocity, "x", 1, 20 );
+			gui.add( options.velocity, "y", 1, 20 );
+			gui.add( options.velocity, "z", 1, 20 );
 			gui.add( options, "sizeRandomness", 0, 25 );
 			gui.add( options, "colorRandomness", 0, 1 );
 			gui.add( options, "lifetime", .1, 100 );
