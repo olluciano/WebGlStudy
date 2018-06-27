@@ -132,6 +132,9 @@ window.onload = function () {
 		objects.children[i].position.x = (parameters.scale / segments)*i;
 	 }
     //  objects.forEach(function(item,index){scene.add(item);});
+	objects.position.x=-1;
+	objects.position.y=-2;
+	objects.position.z=-2;
 	 scene.add(objects);
    
      
@@ -161,9 +164,9 @@ window.onload = function () {
 	 			gui.add( options, "velocityRandomness", 0, 3 );
 			gui.add( options, "positionRandomness", 0, 3 );
 			gui.add( options, "size", 1, 20 );
-			gui.add( options.velocity, "x", 1, 20 );
-			gui.add( options.velocity, "y", 1, 20 );
-			gui.add( options.velocity, "z", 1, 20 );
+			gui.add( options.velocity, "x", -20, 20 );
+			gui.add( options.velocity, "y", -20, 20 );
+			gui.add( options.velocity, "z", -20, 20 );
 			gui.add( options, "sizeRandomness", 0, 25 );
 			gui.add( options, "colorRandomness", 0, 1 );
 			gui.add( options, "lifetime", .1, 100 );
@@ -233,15 +236,6 @@ window.onload = function () {
 			//var max = Math.pow(segments+1, 2);
 
 
-			var adjustedLength;
-	
-			objects.children.forEach(function(item,index){
-			
-				adjustedLength = Math.floor(frequencyArray[((range/fraction)/segments)*index]);
-			
-				item.position.y = adjustedLength *parameters.height;
-			});
-			
 
 		};
         
@@ -269,9 +263,14 @@ window.onload = function () {
 
 		if ( delta > 0 ) {
 			objects.children.forEach(function(item,index){
-			
-				for ( var x = 0; x < spawnerOptions.spawnRate /* * delta*/; x++ ) {
+				
+				var adjustedLength;
 
+				adjustedLength = Math.floor(frequencyArray[((range/fraction)/segments)*index]);
+			
+				options.position.y = adjustedLength *parameters.height;
+
+				for ( var x = 0; x < spawnerOptions.spawnRate /* * delta*/; x++ ) {
 
 					item.spawnParticle( options );
 
