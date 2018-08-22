@@ -1,0 +1,297 @@
+<style>
+  html, body{
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+    font-size: 0;
+    background: -moz-linear-gradient(left, rgb(158,158,158) 0%, rgb(30,30,30) 18%,  rgb(30,30,30) 85%, rgb(158,158,158) 100%); /* FF3.6-15 */
+    background: -webkit-linear-gradient(left,  rgb(158,158,158) 0%, rgb(30,30,30) 18%,  rgb(30,30,30) 85%, rgb(158,158,158) 100%); /* Chrome10-25,Safari5.1-6 */
+    background: linear-gradient(to right,  rgb(158,158,158) 0%, rgb(30,30,30) 18%,  rgb(30,30,30) 85%, rgb(158,158,158) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#9e9e9e', endColorstr='#9e9e9e',GradientType=1 ); /* IE6-9 */
+  }
+
+  .centered {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+  }
+</style>
+<script src="https://threejs.org/build/three.min.js"></script>
+<script src="https://threejs.org/examples/js/libs/dat.gui.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+
+<script src="https://threejs.org/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://threejs.org/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://threejs.org/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://threejs.org/examples/js/postprocessing/MaskPass.js"></script> 
+<script src="https://threejs.org/examples/js/shaders/CopyShader.js"></script>
+
+<script src="https://threejs.org/examples/js/shaders/RGBShiftShader.js"></script>
+
+<script>
+
+  var report = 0;
+  var init, camera, controls, scene, renderer, raycaster, objects = [];
+  var soundAllowed,soundNotAllowed;
+
+  var amountSpeed = 8, angleSpeed = 32;
+  var renderPass,rgbPass,copyPass,composer;
+
+  var range = 512;
+
+
+  var spotLight;
+  var gui,par = { 
+    scale:.2,
+
+    height : 2,
+    show: true,
+    amount: 0.01,
+    angle: 0.0,
+    maxShift:.002,
+    shiftRate:0.00001,
+    res:256
+    //micListen: function(){  navigator.mediaDevices.getUserMedia({audio:true}).then(soundAllowed).catch(soundNotAllowed)}
+  };
+  var originalCircle;
+
+  window.onload = function () {
+    "use strict";
+    (init = function () {
+      scene = new THREE.Scene();
+      renderer = new THREE.WebGLRenderer( { antialias: true, alpha: true  } );
+      renderer.setSize( window.innerWidth, window.innerHeight );
+      renderer.gammaInput = true;
+      renderer.gammaOutput = true;
+
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      document.body.appendChild( renderer.domElement );
+
+      camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.01, 10 );
+      camera.position.z = 1;
+      controls = new THREE.OrbitControls( camera ,renderer.domElement);
+
+      spotLight = new THREE.SpotLight( 0xffffff );
+      spotLight.position.set( 0, 2, 0 );
+      spotLight.lookAt(scene);
+      spotLight.angle = 1.6;
+      spotLight.penumbra = 0.05;
+      spotLight.decay = 3;
+      spotLight.distance = 6;
+
+      spotLight.castShadow = true;
+      spotLight.shadow.mapSize.width = 1024;
+      spotLight.shadow.mapSize.height = 1024;
+      spotLight.shadow.camera.near = .1;
+      spotLight.shadow.camera.far = 10;
+      scene.add( spotLight );
+
+
+
+
+      var mat = new THREE.MeshNormalMaterial();
+      //var circleMat = new THREE.MeshBasicMaterial({wireframe:true});
+      var shadowMat = new THREE.ShadowMaterial({opacity : 0.5});
+      //  var mat2 =  new THREE.MeshPhongMaterial( { color: 0x808080} );
+
+      objects[0] = new THREE.Mesh(new THREE.IcosahedronGeometry(par.scale,0),mat); 
+      objects[0].castShadow = true;
+
+      objects[1] = new THREE.Mesh(new THREE.PlaneGeometry(100,100),shadowMat); 
+      objects[1].rotation.x = - Math.PI * 0.5;
+      objects[1].position.y = -0.42;
+      objects[1].receiveShadow = true;
+
+
+
+
+
+      var circleGeo = new THREE.Geometry(),
+          circleMat = new THREE.LineBasicMaterial({ color: 0xFFFFFF });
+
+      for (var i = 0; i <= par.res; i++) {
+        var theta = (i / par.res) * Math.PI * 2;
+        circleGeo.vertices.push(
+          new THREE.Vector3(
+            Math.cos(theta) *( par.scale*2),
+            Math.sin(theta) * (par.scale*2),
+            0));            
+      }
+
+      originalCircle = new THREE.Geometry();
+
+
+      for (var i = 0; i <= par.res; i++) {
+        var theta = (i / par.res) * Math.PI * 2;
+        originalCircle.vertices.push(
+          new THREE.Vector3(
+            Math.cos(theta) *( par.scale*2),
+            Math.sin(theta) * (par.scale*2),
+            0));            
+      }
+
+      objects[2] = new THREE.LineLoop( circleGeo, circleMat ); 
+
+      objects.forEach(function(item,index){scene.add(item)});
+
+      addEvent(window, 'resize', onWindowResize);
+      //addEvent(document, 'mousemove', onDocumentMouseMove);
+      //addEvent(document, 'mouseout', onMouseOut);
+
+
+
+      //POST PROCESSING
+      //Create Shader Passes
+      renderPass = new THREE.RenderPass( scene, camera );
+      rgbPass = new THREE.ShaderPass( THREE.RGBShiftShader );
+      copyPass = new THREE.ShaderPass( THREE.CopyShader );
+
+      onToggleShaders();
+      onParamsChange();
+
+      gui = new dat.GUI();gui.closed = true;  
+      gui.add(par, 'amount').min(-.01).max(.01).step(.00001).name("RGB shift amount").onChange(onParamsChange).listen();
+      gui.add(par, 'angle').min(-3.140).max(3.14).step(.00001).name("RGB shift angle").onChange(onParamsChange).listen();
+      gui.add(par, 'maxShift').min(0).max(3.14).step(.00001);
+      gui.add(par, 'height').min(0).max(80).step(.00001);
+      gui.add(spotLight, 'decay').min(-1).max(10).step(.00001);
+      gui.add(spotLight, 'distance').min(-1).max(10).step(.00001);
+      gui.add(spotLight, 'angle').min(0).max(3.14).step(.00001);
+      gui.add(spotLight, 'intensity').min(0).max(30.14).step(.00001);
+
+      //   gui.addColor(mat2, 'color');
+      gui.add(objects[1].position, 'y').min(-1).max(10).step(.00001);
+
+
+    })()
+
+    function onToggleShaders(){
+      //Add Shader Passes to Composer
+      //order is important 
+      composer = new THREE.EffectComposer( renderer);
+      composer.addPass( renderPass );
+
+      if (par.show){
+        composer.addPass( rgbPass );
+      }
+      composer.addPass( copyPass );
+      copyPass.renderToScreen = true;
+    }
+
+    function onParamsChange(){	
+      rgbPass.uniforms["angle"].value = par.angle*Math.PI;
+      rgbPass.uniforms["amount"].value = par.amount;
+    }
+
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize( window.innerWidth, window.innerHeight );
+    }
+    function addEvent(obj, evt, fn) {
+      if (obj.addEventListener) {
+        obj.addEventListener(evt, fn, false);
+      }
+      else if (obj.attachEvent) {
+        obj.attachEvent('on' + evt, fn);
+      }
+    }
+    soundAllowed = function (stream) { 
+      window.persistAudioStream = stream;
+      var audioContent = new AudioContext();
+      var audioStream = audioContent.createMediaStreamSource( stream );
+      var analyser = audioContent.createAnalyser();
+      audioStream.connect(analyser);
+      analyser.fftSize = range*2;
+      var frequencyArray = new Uint8Array(analyser.frequencyBinCount);     
+      var t =true;
+      var scal = range/(par.res/0.5);
+      var max = range/(range/ par.res); 
+      (function animationLoop(){
+        requestAnimationFrame(animationLoop);
+        analyser.getByteFrequencyData(frequencyArray);
+        var skip = 0;
+        var freq = 0;
+        
+        var zeroVector = new THREE.Vector3( );
+        var distance = originalCircle.vertices[0].distanceTo(zeroVector);
+        function N(num, places){ 
+          return +(Math.round(num + "e+" + places)  + "e-" + places);
+        }
+        function getSum(total, num) {
+          return total + num;
+        }
+        objects[2].geometry.vertices.forEach(function(item,index){
+
+          if(index == skip){
+            if(frequencyArray[freq]>0) {
+              item.x = originalCircle.vertices[index].x;
+              item.y = originalCircle.vertices[index].y;
+              item.z = originalCircle.vertices[index].z;
+              var nume = frequencyArray.slice(freq,freq+scal).reduce(getSum);
+             
+              item.setLength(distance+((distance / max   )* nume));
+            }else{
+
+              if(N(item.distanceTo( zeroVector),2)> distance){ 
+
+                item.multiplyScalar(0.95+((item.distanceTo( zeroVector)-distance)/64));
+
+              }else{
+
+                item.x = originalCircle.vertices[index].x;
+                item.y = originalCircle.vertices[index].y;
+                item.z = originalCircle.vertices[index].z;
+              }
+            }
+            freq += scal;
+            skip += 1;
+          }
+        });
+        objects[2].geometry.verticesNeedUpdate = true;
+
+
+
+        if(frequencyArray[80]>0){
+          rgbPass.uniforms["amount"].value += rgbPass.uniforms["amount"].value< par.maxShift ?  (frequencyArray[80]*par.shiftRate ):0;
+
+        } else{
+
+          if(rgbPass.uniforms["amount"].value >0){
+            rgbPass.uniforms["amount"].value -= ( rgbPass.uniforms["amount"].value  ) / amountSpeed;
+          }
+        }
+        if(frequencyArray[80]>0){
+          rgbPass.uniforms["angle"].value += (frequencyArray[60]*0.001 );
+
+        } else{
+
+          if(rgbPass.uniforms["angle"].value > par.angle){
+            rgbPass.uniforms["angle"].value -= ( rgbPass.uniforms["angle"].value - par.angle ) / angleSpeed;
+          }
+        }
+
+        objects[0].scale.z = 1+   (frequencyArray[128]/ 500  );
+        objects[0].scale.x = 1+   (frequencyArray[50]/ 500  );
+        objects[0].scale.y = 1+   (frequencyArray[0]/ 500  );
+        objects[0].rotation.x += 0.01;
+        //  objects[0].rotation.y += 0.02;
+        objects[0].rotation.y += Math.sin(Date.now()/ 30000000 / (Math.PI/ 180))/100 ;
+        ///
+
+        composer.render(0.1);
+        // renderer.render( scene, camera );
+      })()
+
+    }
+    soundNotAllowed = function (error) {
+      console.log("You must allow your microphone.");
+      console.log(error);
+    }
+    navigator.mediaDevices.getUserMedia({audio:true}).then(soundAllowed).catch(soundNotAllowed);
+  };
+
+</script>
