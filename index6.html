@@ -1,0 +1,256 @@
+<style>
+	html, body{
+	width: 100%;
+	height: 100%;
+	padding: 0;
+	margin: 0;
+
+	font-size: 0;
+	  
+	  
+	  
+	 
+
+	background: -moz-linear-gradient(left, rgb(158,158,158) 0%, rgb(0,0,0) 18%,  rgb(0,0,0) 85%, rgb(158,158,158) 100%); /* FF3.6-15 */
+	background: -webkit-linear-gradient(left,  rgb(158,158,158) 0%, rgb(0,0,0) 18%,  rgb(0,0,0) 85%, rgb(158,158,158) 100%); /* Chrome10-25,Safari5.1-6 */
+	background: linear-gradient(to right,  rgb(158,158,158) 0%, rgb(0,0,0) 18%,  rgb(0,0,0) 85%, rgb(158,158,158) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#9e9e9e', endColorstr='#9e9e9e',GradientType=1 ); /* IE6-9 */
+	}
+
+
+
+	h1{
+	width: 100%;
+	font-family: sans-serif;
+	position:absolute;
+	text-align:center;
+	color:white;
+	font-size: 18px;
+	top: 40%;
+	opacity: 1;
+	transition: opacity 1s ease-in-out;
+	-moz-transition: opacity 1s ease-in-out;
+	-webkit-transition: opacity 1s ease-in-out;
+	}
+
+	h1 a{
+	  color: #48b1f4;
+	  text-decoration:none;
+	}
+
+	.centered {
+	  position: fixed;
+	  top: 50%;
+	  left: 50%;
+	}
+</style>
+<script src="https://threejs.org/build/three.min.js"></script>
+<script src="https://threejs.org/examples/js/libs/dat.gui.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+
+<h1>Iaa</h1>
+
+
+
+
+<script>
+var h = document.getElementsByTagName('h1')[0];
+var report = 0;
+var init, camera, scene, renderer, raycaster, objects = [];
+var geometry, material, mesh,lastGeometry = [];
+var range = 512, segments=63;
+var mouse = new THREE.Vector2(), INTERSECTED;
+var radius = 100, theta = 0;
+var cursorFocus;
+
+var soundAllowed,soundNotAllowed;
+var light;
+var gui,parameters = { 
+        scale:2,
+        lightDistance:2.6,
+        lightPower:1,
+        lightR: 1,
+        lightG: 1,
+        lightB: 1,
+        gridRotationX: -3.14/4,
+        gridRotationZ:0,
+        spectrumFraction:1,
+		height : 0.002,
+        micListen: function(){  navigator.mediaDevices.getUserMedia({audio:true}).then(soundAllowed).catch(soundNotAllowed)}
+      };
+   var fraction = 1;
+
+window.onload = function () {
+    "use strict";
+   
+   (init = function () {
+      camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.01, 10 );
+      camera.position.z = 1;
+
+      scene = new THREE.Scene();
+     
+      light = new THREE.PointLight();
+      light.intensity =   parameters.lightPower;
+      light.distance =parameters.lightDistance;
+      light.color.r = parameters.lightR;light.color.g = parameters.lightG;light.color.b = parameters.lightB;
+      light.position.set(0,2,0 );
+      scene.add( light );
+     
+    
+      geometry = new THREE.PlaneGeometry(parameters.scale,parameters.scale,segments,segments);
+      material = new THREE.MeshPhongMaterial( {
+        color: 0xFFFFFF,
+        wireframe:true,
+        //  emissive:0xffffff,
+        // emissiveMap:texture,
+        //  emissiveIntensity:1,
+      });
+      mesh = new THREE.Mesh(geometry, material);
+      //scene.add( mesh );
+      objects.push(mesh);
+     
+      objects.forEach(function(item,index){scene.add(item);});
+      mesh.rotation.x += parameters.gridRotationX;
+      mesh.rotation.z += parameters.gridRotationZ;
+    
+      raycaster = new THREE.Raycaster();
+     
+      addEvent(window, 'resize', onWindowResize);
+      addEvent(document, 'mousemove', onDocumentMouseMove);
+      addEvent(document, 'mouseout', onMouseOut);
+     
+      renderer = new THREE.WebGLRenderer( { antialias: true, alpha: true  } );
+      renderer.setSize( window.innerWidth, window.innerHeight );
+     
+      document.body.appendChild( renderer.domElement );
+     
+      createGui();
+    })()
+    function createGui(){
+      gui = new dat.GUI();
+      gui.add(parameters,'height').min(0.00002).max(0.01).step(0.00001).name("max values");
+      gui.add(parameters,'lightPower').min(0).max(2).step(0.001).name("lightPower").onChange(function(value){light.intensity = parameters.lightPower;}).listen();
+      gui.add(parameters,'lightDistance').min(0).max(10).step(0.001).name("lightDistance").onChange(function(value){light.distance = parameters.lightDistance;}).listen();
+      gui.add(parameters,'lightR').min(0).max(1).step(.0001).name("lightR").onChange(function(value){light.color.r = parameters.lightR;}).listen();
+      gui.add(parameters,'lightG').min(0).max(1).step(.0001).name("lightG").onChange(function(value){light.color.g = parameters.lightG;}).listen();
+      gui.add(parameters,'lightB').min(0).max(1).step(.0001).name("lightB").onChange(function(value){light.color.b = parameters.lightB;}).listen();
+      gui.add(parameters,'gridRotationX').min(-3.14).max(3.14).step(.00001).name("gridRotationX").onChange(function(value){mesh.rotation.x = parameters.gridRotationX;}).listen();
+      gui.add(parameters,'gridRotationZ').min(-3.14).max(3.14).step(.00001).name("gridRotationZ").onChange(function(value){mesh.rotation.z = parameters.gridRotationZ;}).listen();
+      
+      gui.add(parameters,'spectrumFraction').min(1).max(8).step(1).name("spectrumFraction").onChange(function(value){fraction = 1; for(var i =1;i< value;i++){fraction *=2;}}).listen();
+      
+      gui.add(parameters,'micListen');
+    }
+  
+    function onMouseOut(e){
+      e = e ? e : window.event;
+      var from = e.relatedTarget || e.toElement;
+      if (!from || from.nodeName == 'HTML') {
+        cursorFocus = false;
+        console.log(cursorFocus);
+      }
+    }
+    function onDocumentMouseMove( event ) {
+        if(!cursorFocus) cursorFocus= true;
+				event.preventDefault();
+				mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+				mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+    }
+    function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+    }
+    function addEvent(obj, evt, fn) {
+      if (obj.addEventListener) {
+        obj.addEventListener(evt, fn, false);
+      }
+      else if (obj.attachEvent) {
+        obj.attachEvent('on' + evt, fn);
+      }
+    }
+    soundAllowed = function (stream) { 
+        
+        window.persistAudioStream = stream;
+        h.innerHTML = "Thanks";
+        h.setAttribute('style', 'opacity: 0;');
+        var audioContent = new AudioContext();
+        var audioStream = audioContent.createMediaStreamSource( stream );
+        var analyser = audioContent.createAnalyser();
+        audioStream.connect(analyser);
+        analyser.fftSize = range*2;
+        var frequencyArray = new Uint8Array(analyser.frequencyBinCount);     
+        var animationLoop = function(){
+          requestAnimationFrame(animationLoop);
+          analyser.getByteFrequencyData(frequencyArray);
+          var max = Math.pow(segments+1, 2);
+          for(var x = 0; x < (max-(segments+1));x++){
+              mesh.geometry.vertices[(x+(segments+1))].z = lastGeometry[x];            
+          }
+          var i =0, j = 0;
+          var adjustedLength;
+          while(i < (range/fraction)){
+            adjustedLength = Math.floor(frequencyArray[i]) - (Math.floor(frequencyArray[i]) % 1);
+            adjustedLength *= parameters.height;
+            lastGeometry[j] = mesh.geometry.vertices[j].z;
+            mesh.geometry.vertices[j].z = adjustedLength;        
+            i+=(range/fraction)/(segments+1);
+            j+=1;
+          }     
+          mesh.geometry.verticesNeedUpdate = true;    
+          mesh.geometry.computeBoundingSphere();
+          //mesh.geometry.normalsNeedUpdate = true; 
+          //mesh.geometry.computeFaceNormals(); 
+          //mesh.geometry.computeVertexNormals();         
+          for(var x = segments+1; x < max;x++){
+            lastGeometry[x] = mesh.geometry.vertices[x].z;
+          }
+          camera.updateMatrixWorld();
+          raycaster.setFromCamera( mouse, camera );
+				  var intersects = raycaster.intersectObjects(objects,true);
+				  if ( intersects.length > 0 ) {
+					  if ( INTERSECTED != intersects[ 0 ].object ) {
+              if ( INTERSECTED ) {
+                INTERSECTED.material.emissive.setHex( INTERSECTED.currentHex );
+              }
+              INTERSECTED = intersects[ 0 ].object;
+              INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
+              INTERSECTED.material.emissive.setHex( 0xff0000 );
+            }
+
+				} else {
+
+					if ( INTERSECTED ) INTERSECTED.material.emissive.setHex( INTERSECTED.currentHex );
+					INTERSECTED = null;
+				}                    
+          renderer.render( scene, camera );
+        }
+        animationLoop();
+    }
+
+    
+    soundNotAllowed = function (error) {
+        h.innerHTML = "You must allow your microphone.";
+        console.log(error);
+    }
+    
+  
+   
+    var gridImage = new Image();
+  gridImage.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAACmSURBVEhLtcIxC0EBAIXRb7BZbTaZjLJYWWzKYlQWm7KYDBaTRdksymZSJpOy6A3UK/UWUU8ySFIMBnX9ins6KOGNUt4o640K3qjsjWreqOmNOt6o741G3mjqjRbeaO2N9t7o5I0e3ujnzfuXtOb6TVsTfXLWbF9Fa1bPijXze92aya1lzfDStaZ3HljTPo6taUQza6qHpTWlcGNNfhdakwli4yD+A/0It/s7GVxKAAAAAElFTkSuQmCC';
+    var texture = new THREE.Texture();
+    texture.image = gridImage;
+    gridImage.onload = function() {
+      texture.needsUpdate = true;
+    };
+    texture.repeat.set(1, 1);
+    texture.wrapS = texture.wrapT = THREE.MirroredRepeatWrapping;
+  
+  
+    var micImage = new Image();
+  micImage.src='data:image/png;base64,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';
+  
+ navigator.mediaDevices.getUserMedia({audio:true}).then(soundAllowed).catch(soundNotAllowed);
+};
+
+</script>
