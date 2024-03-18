@@ -44,7 +44,14 @@
 	  left: 50%;
 	}
 </style>
-	<script src="https://threejs.org/build/three.min.js"></script>
+			<script type="importmap">
+			{
+				"imports": {
+					"three": "../build/three.module.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+		</script>
 	<script src="https://threejs.org/examples/js/libs/dat.gui.min.js"></script>
 
 
